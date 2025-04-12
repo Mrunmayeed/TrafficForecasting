@@ -20,16 +20,15 @@ class RoadDataset:
         self.window_size = window_size
         self.pred_size = pred_size
         self.stride = stride
-        self.create_dataset()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.create_dataset()
         
     def get_raw_data(self):
 
         folder_path = 'dataset/'
         self.node_features = pd.read_csv(folder_path + 'PeMSD7_V_228.csv', header=None).values
-        self.node_features = self.node_features.to(self.device)
         self.adj_matrix = pd.read_csv(folder_path + 'PeMSD7_W_228.csv', header=None).values
-        self.adj_matrix = self.adj_matrix.to(self.device)
+
 
 
     def adjacency_to_edge_index(self, adj_matrix):
@@ -38,7 +37,9 @@ class RoadDataset:
         edge_weight = adj_matrix[edge_index]  # Get the weights of these edges
         edge_index = np.vstack(edge_index)  # Convert to the correct format for PyTorch Geometric
         self.edge_index= torch.tensor(edge_index, dtype=torch.long)
+        self.edge_index = self.edge_index.to(self.device)
         self.edge_weight = torch.tensor(edge_weight, dtype=torch.float)
+        self.edge_weight = self.edge_weight.to(self.device)
 
     def scale_dataset(self, dataset, train=False):
 
@@ -52,7 +53,9 @@ class RoadDataset:
         scaled_list = []
         for data in dataset:
             x_scaled = torch.tensor(self.scaler.transform(data.x.T.numpy()).T, dtype=torch.float32)
+            x_scaled = x_scaled.to(self.device)
             y_scaled = torch.tensor(self.scaler.transform(data.y.T.numpy()).T, dtype=torch.float32)
+            y_scaled = y_scaled.to(self.device)
             scaled_list.append(Data(x=x_scaled, edge_index=data.edge_index, y=y_scaled))
 
         return scaled_list
@@ -110,7 +113,7 @@ def get_data():
 if __name__ == "__main__":
     rd = RoadDataset(window_size=288, pred_size=12, stride=12)
     train_dataset,test_dataset = rd.train_dataset,rd.test_dataset
-    torch.save(train_dataset, "temp/train_data.pt")
-    torch.save(test_dataset, "temp/test_data.pt")
+    # torch.save(train_dataset, "temp/train_data.pt")
+    # torch.save(test_dataset, "temp/test_data.pt")
     print("Updated train and test datasets")
 
