@@ -21,12 +21,15 @@ class RoadDataset:
         self.pred_size = pred_size
         self.stride = stride
         self.create_dataset()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
     def get_raw_data(self):
 
         folder_path = 'dataset/'
         self.node_features = pd.read_csv(folder_path + 'PeMSD7_V_228.csv', header=None).values
-        self.adj_matrix = pd.read_csv(folder_path + 'PeMSD7_W_228.csv', header=None).values 
+        self.node_features = self.node_features.to(self.device)
+        self.adj_matrix = pd.read_csv(folder_path + 'PeMSD7_W_228.csv', header=None).values
+        self.adj_matrix = self.adj_matrix.to(self.device)
 
 
     def adjacency_to_edge_index(self, adj_matrix):
