@@ -33,22 +33,22 @@ class DeepVGAE(VGAE):
         adj_pred = self.decoder.forward_all(z)
         return adj_pred
 
-    def loss(self, x, pos_edge_index, all_edge_index=None):
-        z = self.encode(x, pos_edge_index)
-
-        pos_loss = -torch.log(
-            self.decoder(z, pos_edge_index, sigmoid=True) + 1e-15).mean()
-
-        # Do not include self-loops in negative samples
-        all_edge_index_tmp, _ = remove_self_loops(all_edge_index)
-        all_edge_index_tmp, _ = add_self_loops(all_edge_index_tmp)
-
-        neg_edge_index = negative_sampling(all_edge_index_tmp, z.size(0), pos_edge_index.size(1))
-        neg_loss = -torch.log(1 - self.decoder(z, neg_edge_index, sigmoid=True) + 1e-15).mean()
-
-        kl_loss = 1 / x.size(0) * self.kl_loss()
-
-        return pos_loss + kl_loss + neg_loss
+    # def loss(self, x, pos_edge_index, all_edge_index=None):
+    #     z = self.encode(x, pos_edge_index)
+    #
+    #     pos_loss = -torch.log(
+    #         self.decoder(z, pos_edge_index, sigmoid=True) + 1e-15).mean()
+    #
+    #     # Do not include self-loops in negative samples
+    #     all_edge_index_tmp, _ = remove_self_loops(all_edge_index)
+    #     all_edge_index_tmp, _ = add_self_loops(all_edge_index_tmp)
+    #
+    #     neg_edge_index = negative_sampling(all_edge_index_tmp, z.size(0), pos_edge_index.size(1))
+    #     neg_loss = -torch.log(1 - self.decoder(z, neg_edge_index, sigmoid=True) + 1e-15).mean()
+    #
+    #     kl_loss = 1 / x.size(0) * self.kl_loss()
+    #
+    #     return pos_loss + kl_loss + neg_loss
 
     def single_test(self, x, train_pos_edge_index, test_pos_edge_index, test_neg_edge_index):
         with torch.no_grad():

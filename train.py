@@ -35,7 +35,7 @@ args = {
     "enc_out_channels": 32,
     "stride":12,
     "lr": 0.01,
-    "epoch": 5, # 10,
+    "epoch": 5,
     "dataset": "Road",
     "prediction":12,
     "device": device,
@@ -71,14 +71,16 @@ def get_encodings(name):
 
 
 #TODO: Work on dataset
-rd = RoadDataset(window_size=args['enc_in_channels'], pred_size=args['prediction'], stride=args['stride'])
-train_dataset,test_dataset = rd.train_dataset, rd.test_dataset
 
 
 # BASELINE
 
 
 if __name__ == "__main__":
+
+    rd = RoadDataset(window_size=args['enc_in_channels'], pred_size=args['prediction'], stride=args['stride'])
+    train_dataset, test_dataset = rd.train_dataset, rd.test_dataset
+
 
     # start = time.time()
     # logging.info("Training Baseline Model")

@@ -7,6 +7,7 @@ import time
 from torch.utils.data import DataLoader, TensorDataset
 import logging
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from torchinfo import summary
 
 
 input_seq1=288
@@ -16,17 +17,18 @@ output_seq=12
 class TwoInputRegressor(nn.Module):
     def __init__(self, input_seq1, input_seq2, output_seq):
         super(TwoInputRegressor, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=64, kernel_size=5, padding=2)
-        self.conv2 = nn.Conv1d(64, 32, kernel_size=5, padding=2)
+        self.conv1 = nn.Conv1d(in_channels=input_seq1, out_channels=128, kernel_size=5, padding=2)
+        self.conv2 = nn.Conv1d(128, 32, kernel_size=5, padding=2)
 
-        # Output from conv2 has shape: [B, 32, 288] → flatten to B x (32*288)
-        self.flatten_dim = 32 * input_seq1
+        # Output from conv2 has shape: [B, 32, 1] → flatten to B x (32*288)
+        self.flatten_dim = 32 * 1
         self.time_comp = nn.Linear(self.flatten_dim, input_seq2)  # project to 24
-        self.final = nn.Linear(input_seq2 * 2, output_seq)
+        self.final1 = nn.Linear(input_seq2 * 2, input_seq2)
+        self.final2 = nn.Linear(input_seq2, output_seq)
 
     def forward(self, x, z):
         # x: [B, 288] → [B, 1, 288]
-        x = x.unsqueeze(1)
+        x = x.unsqueeze(2)
         x = F.relu(self.conv1(x))  # → [B, 64, 288]
         x = F.relu(self.conv2(x))  # → [B, 32, 288]
         x = x.view(x.size(0), -1)  # → [B, 32*288]
@@ -34,7 +36,9 @@ class TwoInputRegressor(nn.Module):
 
         # z: [B, 24]
         xz = torch.cat((x, z), dim=1)  # → [B, 48]
-        return self.final(xz)
+        xz = self.final1(xz)
+        xz = self.final2(xz)
+        return xz
 
 
 def train_thread_func(args, node, train_encoding, test_encoding):
@@ -44,7 +48,7 @@ def train_thread_func(args, node, train_encoding, test_encoding):
     x_train = torch.tensor(train_encoding['x'], dtype=torch.float32)
     y_train = torch.tensor(train_encoding['y'], dtype=torch.float32)
     z_train = torch.tensor(train_encoding['z'], dtype=torch.float32)
-    dm.train(x_train, y_train, z_train, **args)
+    training_losses = dm.train(x_train, y_train, z_train, **args)
 
     x_test = torch.tensor(test_encoding['x'], dtype=torch.float32)
     y_test = torch.tensor(test_encoding['y'], dtype=torch.float32)
@@ -52,12 +56,13 @@ def train_thread_func(args, node, train_encoding, test_encoding):
     loss, _, _ = dm.test(x_test, y_test, z_test)
     end = time.time()
     duration = end - start
-    return node, loss, duration
+    return node, loss, duration, training_losses
 
 
 def train_test_each(train_encoding, test_encoding, args):
 
     loss_table = {}
+    training_loss_table = {}
     num_nodes = len(train_encoding)
     # models = {}
     total_time = 0
@@ -76,14 +81,16 @@ def train_test_each(train_encoding, test_encoding, args):
             futures.append(future)
 
         for future in as_completed(futures):
-            node, loss, duration = future.result()
+            node, loss, duration, training_losses = future.result()
             loss_table[node] = loss
+            training_loss_table[node]=training_losses
             total_time += duration
             logging.info(f"Node {node} done. Loss: {loss:.4f} | Time: {duration:.2f}s")
 
     total_loss = sum(loss_table.values())
-    logging.info(f"Final Total Loss for Model: {total_loss:.4f}| Time: {total_time:.2f}s")
+    logging.info(f"Final Test Loss for Model: {total_loss:.4f}| Time: {total_time:.2f}s")
     pd.DataFrame(loss_table.values()).T.to_csv(f"downstream_losses.csv")
+    pd.DataFrame(training_loss_table.values()).T.to_csv(f"downstream_losses_train.csv")
     return loss_table
 
 # class ModelBuilder:
@@ -106,6 +113,9 @@ class DownstreamModel:
         loss_fn = nn.MSELoss()
         self.loader = DataLoader(TensorDataset(X_train, y_train,Z_train), batch_size=32, shuffle=True)
         losses= []
+
+        # logging.info(f"Model Summary")
+        # logging.info(summary(self.model, input_data=(X_train, Z_train)))
         for epoch in range(args['epoch']):
             self.model.train()
             total_loss = 0

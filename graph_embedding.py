@@ -2,8 +2,10 @@ import torch
 from torch.optim import Adam
 import json
 from collections import defaultdict
+from embedding_model import DeepVGAE
+from torchinfo import summary
 
-from model import DeepVGAE
+import logging
 
 
 class GraphEmbeddings:
@@ -14,6 +16,8 @@ class GraphEmbeddings:
         self.model = DeepVGAE(args).to(self.device)
         self.optimizer = Adam(self.model.parameters(), lr=args['lr'])
         self.dataset = dataset
+        # logging.info(f"Summary:")
+        # logging.info(summary(self.model, input_data=(dataset[0].x,dataset[0].edge_index)))
 
     def train(self):
 
