@@ -38,7 +38,7 @@ class GraphEmbeddings:
                 # if i%1000 == 0:
                     # print(f'Epoch {epoch}, Batch {i}, Loss: {loss.item():.4f}')
 
-            # print(f'Epoch {epoch} for Embeddings, Loss: {total_loss:.4f}')
+            print(f'Epoch {epoch} for Embeddings, Loss: {total_loss/len(self.dataset):.4f}')
 
     def encodings(self,dataset):
 

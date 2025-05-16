@@ -8,18 +8,18 @@ from collections import defaultdict
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 from torch_geometric.utils import train_test_split_edges
-
+from node2vec import Node2VecClass
 from data import RoadDataset, get_data
 from graph_embedding import GraphEmbeddings
 from downstream_model import DownstreamModel, train_test_each
-from baseline_model import BaselineModel
 from cnn_model import trainCNN,testCNN
 import time
+
 
 import logging
 
 logging.basicConfig(
-    filename='temp/training_parallel.log',
+    filename='temp/training_node2vec.log',
     filemode='w',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -34,8 +34,8 @@ args = {
     "enc_hidden_channels": 128,
     "enc_out_channels": 32,
     "stride":12,
-    "lr": 0.01,
-    "epoch": 5,
+    "lr": 0.001,
+    "epoch": 10,
     "dataset": "Road",
     "prediction":12,
     "device": device,
@@ -82,25 +82,30 @@ if __name__ == "__main__":
     train_dataset, test_dataset = rd.train_dataset, rd.test_dataset
 
 
-    # start = time.time()
-    # logging.info("Training Baseline Model")
-    # bm = BaselineModel(**args)
-    # bm.train(train_dataset)
-    # bm.test(test_dataset)
-    # end = time.time()
-    # logging.info(f"Time taken for Baseline Model: {end-start}")
-
     # GRAPH ENCODING
+    # start = time.time()
+    # logging.info("Training Graph Embeddings")
+    # ge = GraphEmbeddings(args, train_dataset)
+    # ge.train()
+    # train_encodings = ge.encodings(train_dataset)
+    # test_encodings = ge.encodings(test_dataset)
+    # # save_encodings("train_encodings", train_encodings)
+    # # save_encodings("test_encodings", test_encodings)
+    # end = time.time()
+    # logging.info(f"Time taken for Graph Embeddings: {end-start}")
+
+    # NODE_2_VEC
     start = time.time()
-    logging.info("Training Graph Embeddings")
-    ge = GraphEmbeddings(args, train_dataset)
-    ge.train()
-    train_encodings = ge.encodings(train_dataset)
-    test_encodings = ge.encodings(test_dataset)
+    logging.info("Training Node2Vec Embeddings")
+    nv = Node2VecClass(args, train_dataset)
+    nv.train()
+    train_encodings = nv.encodings(train_dataset)
+    test_encodings = nv.encodings(test_dataset)
     # save_encodings("train_encodings", train_encodings)
     # save_encodings("test_encodings", test_encodings)
     end = time.time()
     logging.info(f"Time taken for Graph Embeddings: {end-start}")
+
 
     start = time.time()
     # train_encodings = get_encodings("train_encodings")

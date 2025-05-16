@@ -19,6 +19,7 @@ class TwoInputRegressor(nn.Module):
         super(TwoInputRegressor, self).__init__()
         self.conv1 = nn.Conv1d(in_channels=input_seq1, out_channels=128, kernel_size=5, padding=2)
         self.conv2 = nn.Conv1d(128, 32, kernel_size=5, padding=2)
+        # self.conv3 = nn.Conv1d(64, 32, kernel_size=5, padding=2)
 
         # Output from conv2 has shape: [B, 32, 1] → flatten to B x (32*288)
         self.flatten_dim = 32 * 1
@@ -29,8 +30,9 @@ class TwoInputRegressor(nn.Module):
     def forward(self, x, z):
         # x: [B, 288] → [B, 1, 288]
         x = x.unsqueeze(2)
-        x = F.relu(self.conv1(x))  # → [B, 64, 288]
+        x = F.relu(self.conv1(x))  # → [B, 128, 288]
         x = F.relu(self.conv2(x))  # → [B, 32, 288]
+        # x = F.relu(self.conv3(x))  # → [B, 32, 288]
         x = x.view(x.size(0), -1)  # → [B, 32*288]
         x = F.relu(self.time_comp(x))  # → [B, 24]
 
@@ -87,10 +89,10 @@ def train_test_each(train_encoding, test_encoding, args):
             total_time += duration
             logging.info(f"Node {node} done. Loss: {loss:.4f} | Time: {duration:.2f}s")
 
-    total_loss = sum(loss_table.values())
-    logging.info(f"Final Test Loss for Model: {total_loss:.4f}| Time: {total_time:.2f}s")
-    pd.DataFrame(loss_table.values()).T.to_csv(f"downstream_losses.csv")
-    pd.DataFrame(training_loss_table.values()).T.to_csv(f"downstream_losses_train.csv")
+    avg_loss = sum(loss_table.values())/228
+    logging.info(f"Final Test Loss for Model: {avg_loss:.4f}| Time: {total_time:.2f}s")
+    pd.DataFrame(loss_table.values()).to_csv(f"downstream_losses.csv")
+    pd.DataFrame(training_loss_table.values()).to_csv(f"downstream_losses_train.csv")
     return loss_table
 
 # class ModelBuilder:
@@ -111,7 +113,7 @@ class DownstreamModel:
     def train(self, X_train, y_train, Z_train, **args):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=args['lr'])
         loss_fn = nn.MSELoss()
-        self.loader = DataLoader(TensorDataset(X_train, y_train,Z_train), batch_size=32, shuffle=True)
+        self.loader = DataLoader(TensorDataset(X_train, y_train,Z_train), shuffle=True)
         losses= []
 
         # logging.info(f"Model Summary")
@@ -126,13 +128,14 @@ class DownstreamModel:
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
-            logging.info(f"Epoch {epoch + 1}, Loss: {total_loss:.4f}")
-            losses.append(total_loss)
+            avg_loss = total_loss / len(self.loader)
+            logging.info(f"Epoch {epoch + 1}, Loss: {avg_loss:.4f}")
+            losses.append(avg_loss)
         return losses
 
     def test(self, X_test, y_test, Z_test):
         self.model.eval()
-        loader = DataLoader(TensorDataset(X_test, y_test,Z_test), batch_size=32)
+        loader = DataLoader(TensorDataset(X_test, y_test,Z_test))
         loss_fn = torch.nn.MSELoss()
         total_loss = 0
         preds_all = []
@@ -146,8 +149,9 @@ class DownstreamModel:
                 targets_all.append(yb)
 
             # Concatenate all predictions and targets for later analysis if needed
+
+        avg_loss = total_loss / len(loader)
         preds_all = torch.cat(preds_all, dim=0)
         targets_all = torch.cat(targets_all, dim=0)
-        total_loss = total_loss
-        logging.info(f"Test Loss: {total_loss:.4f}")
-        return total_loss, preds_all, targets_all
+        logging.info(f"Test Loss: {avg_loss:.4f}")
+        return avg_loss, preds_all, targets_all
