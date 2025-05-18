@@ -29,7 +29,7 @@ args = {
     "output_dim": 12,
 }
 
-class Node2VecClass:
+class Node2VecEmbeddings:
     def __init__(self, args, dataset):
         self.args = args
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     rd = RoadDataset(window_size=args['enc_in_channels'], pred_size=args['prediction'], stride=args['stride'])
     train_dataset, test_dataset = rd.train_dataset, rd.test_dataset
 
-    nv = Node2VecClass(args, train_dataset)
+    nv = Node2VecEmbeddings(args, train_dataset)
     nv.train()
     train_encodings = nv.encodings(train_dataset)
     test_encodings = nv.encodings(test_dataset)

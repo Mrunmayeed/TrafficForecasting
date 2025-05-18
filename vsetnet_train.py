@@ -10,7 +10,7 @@ import torch_geometric.transforms as T
 from torch_geometric.utils import train_test_split_edges
 
 from data import RoadDataset, get_data
-from graph_embedding import GraphEmbeddings
+from VGAE_embedding import VGAEEmbeddings
 from downstream_model import DownstreamModel, train_test_each
 from cnn_model import trainCNN,testCNN
 import time
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     # GRAPH ENCODING
     start = time.time()
     logging.info("Training Graph Embeddings")
-    ge = GraphEmbeddings(args, train_dataset)
+    ge = VGAEEmbeddings(args, train_dataset)
     ge.train()
     train_encodings = ge.encodings(train_dataset)
     test_encodings = ge.encodings(test_dataset)

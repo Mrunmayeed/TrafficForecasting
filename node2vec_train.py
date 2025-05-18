@@ -8,9 +8,8 @@ from collections import defaultdict
 from torch_geometric.datasets import Planetoid
 import torch_geometric.transforms as T
 from torch_geometric.utils import train_test_split_edges
-from node2vec import Node2VecClass
-from data import RoadDataset, get_data
-from graph_embedding import GraphEmbeddings
+from node2vec_embeddings import Node2VecEmbeddings
+from data import RoadDataset
 from downstream_model import DownstreamModel, train_test_each
 from cnn_model import trainCNN,testCNN
 import time

@@ -8,7 +8,7 @@ from torchinfo import summary
 import logging
 
 
-class GraphEmbeddings:
+class VGAEEmbeddings:
 
     def __init__(self, args, dataset):
         self.device = args['device']
