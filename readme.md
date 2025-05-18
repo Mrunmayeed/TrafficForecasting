@@ -67,8 +67,6 @@ There are three main training scripts, each corresponding to a major experiment:
 
    Learns Node2Vec embeddings and trains the downstream CNN+MLP model for comparison.
 
-Each script logs training progress to the `logs/` directory by default.
-
 ## File Structure
 
 ```
@@ -83,6 +81,7 @@ Each script logs training progress to the `logs/` directory by default.
 ├── embedding_model.py          # Generic embedding model utilities
 ├── graph_embedding.py          # VGAE implementation and utilities
 ├── node2vec.py                 # Node2Vec embedding implementation
+├── cnn_model.py                # Experiments running single CNN model downstream
 ├── .gitignore
 └── README.md                   # This file
 ```
